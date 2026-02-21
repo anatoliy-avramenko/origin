@@ -4,8 +4,165 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Origin</title>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0a0a0a;
+      color: #00ff9f;
+      font-family: 'VT323', monospace;
+      font-size: 20px;
+      min-height: 100vh;
+      text-shadow: 0 0 5px currentColor;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    #terminal {
+      width: 100%;
+      max-width: 720px;
+    }
+
+    .line { margin-bottom: 4px; white-space: pre-wrap; }
+    .dim  { color: #005c38; }
+    .err  { color: #ff4d6d; }
+    .cmd  { color: #fff; }
+
+    #input-row {
+      display: flex;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    #prompt { color: #00ff9f; margin-right: 8px; white-space: nowrap; }
+
+    #input {
+      background: none;
+      border: none;
+      outline: none;
+      color: #fff;
+      font-family: 'VT323', monospace;
+      font-size: 20px;
+      flex: 1;
+      caret-color: #00ff9f;
+    }
+
+    .hint-block {
+      margin-top: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .hint {
+      border: 1px solid #005c38;
+      color: #00cc7a;
+      padding: 2px 12px;
+      cursor: pointer;
+      user-select: none;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .hint:hover {
+      border-color: #00ff9f;
+      color: #00ff9f;
+    }
+  </style>
 </head>
 <body>
-  <h1>Origin</h1>
+<div id="terminal">
+  <div id="output"></div>
+  <div id="input-row">
+    <span id="prompt">visitor@origin:~$</span>
+    <input id="input" autofocus autocomplete="off" spellcheck="false" />
+  </div>
+  <div class="hint-block" id="hints"></div>
+</div>
+
+<script>
+  const output = document.getElementById('output');
+  const input  = document.getElementById('input');
+  const hints  = document.getElementById('hints');
+
+  const COMMANDS = {
+    help: {
+      desc: 'list available commands',
+      run: () => [
+        { text: 'Available commands:', cls: 'dim' },
+        ...Object.entries(COMMANDS).map(([k, v]) =>
+          ({ text: `  ${k.padEnd(12)} — ${v.desc}` })
+        )
+      ]
+    },
+    whoami: {
+      desc: 'about this place',
+      run: () => [
+        { text: 'origin — a personal sandbox.' },
+        { text: 'work in progress. always.', cls: 'dim' }
+      ]
+    },
+    clear: {
+      desc: 'clear the terminal',
+      run: () => { output.innerHTML = ''; return null; }
+    }
+  };
+
+  function print(lines) {
+    if (!lines) return;
+    lines.forEach(({ text, cls }) => {
+      const div = document.createElement('div');
+      div.className = 'line' + (cls ? ` ${cls}` : '');
+      div.textContent = text;
+      output.appendChild(div);
+    });
+  }
+
+  function renderHints() {
+    hints.innerHTML = '';
+    Object.keys(COMMANDS).forEach(cmd => {
+      const btn = document.createElement('span');
+      btn.className = 'hint';
+      btn.textContent = cmd;
+      btn.onclick = () => execute(cmd);
+      hints.appendChild(btn);
+    });
+  }
+
+  function execute(raw) {
+    const cmd = raw.trim().toLowerCase();
+    const div = document.createElement('div');
+    div.className = 'line';
+    div.innerHTML = `<span class="dim">visitor@origin:~$</span> <span class="cmd">${cmd}</span>`;
+    output.appendChild(div);
+
+    if (!cmd) return;
+
+    if (COMMANDS[cmd]) {
+      const result = COMMANDS[cmd].run();
+      print(result);
+    } else {
+      print([{ text: `command not found: ${cmd}`, cls: 'err' }]);
+    }
+
+    input.value = '';
+    window.scrollTo(0, document.body.scrollHeight);
+  }
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') execute(input.value);
+  });
+
+  // Boot message
+  print([
+    { text: 'origin v0.1.0', cls: 'dim' },
+    { text: 'type  help  or pick a command below.', cls: 'dim' },
+    { text: '' }
+  ]);
+  renderHints();
+  input.focus();
+</script>
 </body>
 </html>
